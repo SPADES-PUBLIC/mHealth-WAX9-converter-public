@@ -89,8 +89,7 @@ public class WAX9File {
 	 */
 	public void processFile() throws IOException {
 		int datum = -1;
-		byte currentByte = 0x00;
-		int i = 0;
+		byte currentByte = 0x00;		
 		
 		// read metadata
 		List<Byte> metadataBytes = new ArrayList<Byte>();
@@ -100,62 +99,56 @@ public class WAX9File {
 			metadataBytes.add(currentByte);
 		}
 		
-		byte[] metaArr = new byte[metadataBytes.size()];
-		for (Byte b : metadataBytes) {
-			metaArr[i++] = b;
-		}
-		metadata = new String(metaArr, StandardCharsets.UTF_8);
+		metadata = new String(toPrimitiveByteArray(metadataBytes), StandardCharsets.UTF_8);
 		if (datum == -1) return;
 		
 		// read payload
-		boolean packetRead = false;
-		i = 0;
+		boolean packetComplete = false;
+		int numBytesRead = 0;
 		
-		// NOTE: For the first packet size, assume extended format size.
-		// Then get correct packet size upon upon subsequent loops. 
-		byte[] payload = new byte[WAX9Packet.EXTENDED_PACKET_SIZE];
-		
-		// collect the current byte from metadata reading
-		payload[i++] = currentByte;
+		List<Byte> payload = new ArrayList<Byte>();
+		payload.add(currentByte); // collect currentByte from metadata reading
+		numBytesRead++;
 		
 		while ((datum = inputFileStream.read()) != -1) {
+			currentByte = (byte)datum;
 			
-			byte b = (byte)datum;
-			switch (b) {
+			switch (currentByte) {
 				case SLIP_END:
-					if (i > 0) {
-						packetRead = true;
-					}
+					// ensure that this is not the first 'end' byte
+					packetComplete = numBytesRead > 0;
 					break;
 					
 				case SLIP_ESC:
 					// read next byte to determine action
 					datum = inputFileStream.read();
-					b = (byte)datum;
+					currentByte = (byte)datum;
 					
-					if (b == SLIP_ESC_END) {
-						b = SLIP_END;
-					} else if (b == SLIP_ESC_ESC) {
-						b = SLIP_ESC;
+					if (currentByte == SLIP_ESC_END) {
+						currentByte = SLIP_END;
+					} else if (currentByte == SLIP_ESC_ESC) {
+						currentByte = SLIP_ESC;
 					}
 					break;
 			}
-			payload[i++] = b;
+			payload.add(currentByte);
+			numBytesRead++;			
 			
-			// still have more to read
-			if (!packetRead) continue;
+			// do we still have more to read?
+			if (!packetComplete) continue;
 			
 			// we've 'completed' the packet. lets write and reset
-			boolean isExtendedPacket = i > WAX9Packet.STANDARD_PACKET_SIZE;
-			WAX9Packet packet = new WAX9Packet(payload, isExtendedPacket);
+			boolean isExtendedPacket = numBytesRead > WAX9Packet.STANDARD_PACKET_SIZE;
+			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(payload), isExtendedPacket);
 			writeContentsToFile(packet);
-			i = 0;
-			payload = new byte[isExtendedPacket ? WAX9Packet.EXTENDED_PACKET_SIZE  : WAX9Packet.STANDARD_PACKET_SIZE];
-			packetRead = false;
+			numBytesRead = 0;
+			payload.clear();
+			packetComplete = false;
 		}
 				
 		closeStreams();
-	}	
+	}
+	
 	
 	/**
 	 * Opens a new file writer for outputting contents
@@ -186,6 +179,11 @@ public class WAX9File {
 		this.writer = null;
 	}
 	
+	/**
+	 * Writes the contents of the packet to the file
+	 * @param packet - The packet to write to file
+	 * @throws IOException - Throw if unable to open a new file or write to file
+	 */
 	private void writeContentsToFile(WAX9Packet packet) throws IOException {
 		if (lastWrittenPacket == null) {
 			String filename = getMHealthFileName(packet.timestamp,  "ACCEL",  "serialNumber",  "tzOffset");
@@ -205,6 +203,11 @@ public class WAX9File {
 		lastWrittenPacket = packet;
 	}
 	
+	/**
+	 * Create a mHealth-compatible CSV line from a WAX9 Packet
+	 * @param packet - The packet to create a csv line from
+	 * @return  The CSV values
+	 */
 	private String createCSVLine(WAX9Packet packet) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_DATA_FORMAT);
 		Date datetime = new Date(packet.timestamp);
@@ -255,36 +258,6 @@ public class WAX9File {
 			throw new IOException("File is empty");
 		}
 		
-		
-		/*
-		 * TODO: Determine if we need this for checking the file
-		 * 
-		DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
-		int test = in.readInt();
-		in.close();
-		boolean isZipFile=(test == ZIP_INDICATOR);
-		if (!isZipFile)
-			return false;
-
-		//Check if the file contains the necessary Actigraph files
-		ZipFile zip = new ZipFile(file);
-		boolean hasLogData=false;
-		boolean hasInfoData=false;
-		for (Enumeration<?> e = zip.entries(); e.hasMoreElements();) {
-			ZipEntry entry = (ZipEntry) e.nextElement();
-			if (entry.toString().equals("log.bin"))
-				hasLogData=true;
-			if (entry.toString().equals("info.txt"))
-				hasInfoData=true;
-		}
-		zip.close();
-
-		if (hasLogData && hasInfoData)
-			return true;
-
-		return  false;
-		*/
-		
 		return new FileInputStream(file);
 	}
 	
@@ -299,5 +272,14 @@ public class WAX9File {
 		}
 		
 		return directory;
+	}
+	
+	private byte[] toPrimitiveByteArray(List<Byte> bytes) {
+		int size = bytes.size();
+		byte[] out = new byte[size];
+		for (int i = 0; i < size; i++) {
+			out[i] = bytes.get(i);
+		}
+		return out;
 	}
 }
