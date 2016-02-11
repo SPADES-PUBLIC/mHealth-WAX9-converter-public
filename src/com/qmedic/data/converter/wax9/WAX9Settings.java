@@ -7,31 +7,109 @@ import java.util.regex.Pattern;
 import javax.accessibility.AccessibleExtendedText;
 import javax.activity.ActivityCompletedException;
 
+/**
+ * The WAX9 Settings associated with the binary file
+ * @see http://axivity.com/files/resources/WAX9_Developer_Guide_3.pdf, p.9-10
+ */
 public class WAX9Settings {
+	/**
+	 * The raw bytes that creates the rawMetadata
+	 */
 	private byte[] rawBytes = null;
+	
+	/**
+	 * The string representation of the rawBytes
+	 */
 	private String rawMetadata = null;
+	
+	/**
+	 * The hardware version
+	 */
 	private String hardwareVersion = null;
+	
+	/**
+	 * The firmware version
+	 */
 	private String firmwareVersion = null;
+	
+	/**
+	 * The chipset of the WAX9 device
+	 */
 	private String chipset = null;
+	
+	/**
+	 * The device ID
+	 */
 	private String deviceID = null;
+	
+	/**
+	 * The device MAC address
+	 */
 	private String mac = null;
+	
+	/**
+	 * The device name
+	 */
 	private String name = null;
 	
+	/**
+	 * The accelerometer active state
+	 */
 	private Boolean accelEnabled = null;
+	
+	/**
+	 * The accelerometer sampling rate (Hz)
+	 */
 	private Integer accelerometerRate = null;
+	
+	/**
+	 * The accelerometer range (g)
+	 */
 	private Integer accelerometerRange = null;
 	
+	/**
+	 * The gyroscope active state
+	 */
 	private Boolean gyroEnabled = null;
+	
+	/**
+	 * The gyroscope sampling rate (Hz)
+	 */
 	private Integer gyroscopeRate = null;
+	
+	/**
+	 * The gyroscope rang (dps)
+	 */
 	private Integer gyroscopeRange = null;
 	
+	/**
+	 * The magnetometer active state
+	 */
 	private Boolean magEnabled = null;
+	
+	/**
+	 * The magnetometer rate (Hz)
+	 */
 	private Integer magnetometerRange = null;
 	
+	/**
+	 * The output data rate (Hz)
+	 */
 	private Integer outputDataRate = null;
+	
+	/**
+	 * The output data mode
+	 */
 	private Integer outputDataMode = null;
 	
+	/**
+	 * The sleep mode setting
+	 */
 	private Integer sleepModeSetting = null;
+	
+	/**
+	 * The inactivity timeout value(s)
+	 */
 	private String inactivityTimeoutValue = null;
 	
 	public WAX9Settings(final byte[] bytes) {
@@ -99,8 +177,14 @@ public class WAX9Settings {
 				continue;
 			}
 			
+			if (line.startsWith("SLEEP")) {
+				sleepModeSetting = Integer.parseInt(extractString(line, "SLEEP MODE:"));
+				continue;
+			}
+			
 			if (line.startsWith("INACTIVE")) {
 				inactivityTimeoutValue = extractString(line, "INACTIVE:");
+				continue;
 			}
 		}
 	}
