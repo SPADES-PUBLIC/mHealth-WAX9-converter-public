@@ -185,7 +185,7 @@ public class WAX9Packet {
 			payload[i] = bytes[offset + i];
 		}
 		
-		ByteBuffer bb =  ByteBuffer.wrap(payload);
+		ByteBuffer bb = ByteBuffer.wrap(payload);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		
 		Number num = null;

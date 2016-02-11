@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-
 public class WAX9File {
 	private static final String MHEALTH_TIMESTAMP_FILE_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
 	private static final String MHEALTH_TIMESTAMP_DATA_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
@@ -64,7 +63,7 @@ public class WAX9File {
 	private boolean splitFile = false;	
 	private WAX9Packet lastWrittenPacket = null;
 	
-	private String metadata = null;
+	private WAX9Settings settings = null;
 	
 	public WAX9File(final String inputFile, final String outputDirectoryPath) throws IOException {
 		this.inputFileStream = openInputFile(inputFile);
@@ -98,9 +97,9 @@ public class WAX9File {
 			if (currentByte == SLIP_END) break;
 			metadataBytes.add(currentByte);
 		}
-		
-		metadata = new String(toPrimitiveByteArray(metadataBytes), StandardCharsets.UTF_8);
 		if (datum == -1) return;
+		
+		settings = new WAX9Settings(toPrimitiveByteArray(metadataBytes));
 		
 		// read payload
 		boolean packetComplete = false;
@@ -157,7 +156,8 @@ public class WAX9File {
 	 */
 	private void openNewFileWriter(String filename) throws IOException  {
 		closeFileWriter();
-		writer = new FileWriter(outputDirectory.getAbsolutePath() + filename);
+		
+		writer = new FileWriter(outputDirectory.getAbsolutePath() + "\\" + filename);
 		
 		writer.append("HEADER_TIME_STAMP,X,Y,Z\n");
 	}
@@ -198,7 +198,7 @@ public class WAX9File {
 			}
 		}
 		
-		String csvLine = createCSVLine(packet);
+		String csvLine = createCSVLine(packet) + "\n";
 		writer.write(csvLine);
 		lastWrittenPacket = packet;
 	}
@@ -211,10 +211,15 @@ public class WAX9File {
 	private String createCSVLine(WAX9Packet packet) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_DATA_FORMAT);
 		Date datetime = new Date(packet.timestamp);
-		String ax = String.valueOf(packet.accelX);
-		String ay = String.valueOf(packet.accelY);
-		String az = String.valueOf(packet.accelZ);
-		return String.join(",", sdf.format(datetime), ax, ay, az);
+		
+		double ax = settings == null ? packet.accelX : settings.convertAccelerometerValueToG(packet.accelX);
+		double ay = settings == null ? packet.accelY : settings.convertAccelerometerValueToG(packet.accelY);
+		double az = settings == null ? packet.accelZ : settings.convertAccelerometerValueToG(packet.accelZ);
+		
+		String accelX = String.valueOf(ax);
+		String accelY = String.valueOf(ay);
+		String accelZ = String.valueOf(az);
+		return String.join(",", sdf.format(datetime), accelX, accelY, accelZ);
 	}
 	
 	/**
