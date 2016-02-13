@@ -9,7 +9,7 @@ public class Main {
 	private static Boolean splitFiles = null;
 	
 	public static void main(String[] args) {
-		// Command line example: java -jar WAX9Parser.jar WAX9Parser/sample-data/v1/sample1.gt3x SPLIT
+		// Command line example: java -jar WAX9Parser.jar ../sample-data/exampleData.bin ../output SPLIT
 		if (args.length < 2){
 			System.out.println("java -jar WAX9Parser.jar [INPUT WAX9 FILE] [OUTPUT CSV DIRECTORYPATH] [SPLIT/NO_SPLIT]");
 			return;
@@ -41,20 +41,6 @@ public class Main {
 			return false;
 		}
 		
-		/**
-		 * try{
-			if (GT3XFile.isGT3XV1(inFile)==false &&
-					GT3XFile.isGT3XV2(inFile)==false){
-				System.out.println("Error: "+args[0]+" not a valid GT3X file. Unknown version...");
-				return;
-			}			
-		}
-		catch(IOException e){
-			System.out.println("Error: "+args[0]+" not a valid GT3X file. Unknown error while trying to read file...");
-			return;
-		}
-		 */
-		
 		return true;
 	}
 	
@@ -73,11 +59,11 @@ public class Main {
 			for (int i = 2; i < args.length; i++) {
 				switch (args[i].toLowerCase()) {
 					case "split":
-						if (splitFiles == true) throw new IllegalArgumentException("Already specified split option.");
+						if (splitFiles != null && splitFiles == true) throw new IllegalArgumentException("Already specified split option.");
 						splitFiles = true;
 						break;
 					case "no_split":
-						if (splitFiles == false) throw new IllegalArgumentException("Already specified split option.");
+						if (splitFiles != null && splitFiles == false) throw new IllegalArgumentException("Already specified split option.");
 						splitFiles = false;
 						break;
 				}
