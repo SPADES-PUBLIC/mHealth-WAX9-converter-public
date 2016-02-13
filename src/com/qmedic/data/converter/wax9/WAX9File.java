@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
@@ -138,7 +139,7 @@ public class WAX9File {
 			
 			// we've 'completed' the packet. lets write and reset
 			boolean isExtendedPacket = numBytesRead > WAX9Packet.STANDARD_PACKET_SIZE;
-			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(payload), isExtendedPacket);
+			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(payload), isExtendedPacket, settings);
 			writeContentsToFile(packet);
 			numBytesRead = 0;
 			payload.clear();
@@ -147,7 +148,6 @@ public class WAX9File {
 				
 		closeStreams();
 	}
-	
 	
 	/**
 	 * Opens a new file writer for outputting contents
@@ -158,7 +158,6 @@ public class WAX9File {
 		closeFileWriter();
 		
 		writer = new FileWriter(outputDirectory.getAbsolutePath() + "\\" + filename);
-		
 		writer.append("HEADER_TIME_STAMP,X,Y,Z\n");
 	}
 	
@@ -186,14 +185,14 @@ public class WAX9File {
 	 */
 	private void writeContentsToFile(WAX9Packet packet) throws IOException {
 		if (lastWrittenPacket == null) {
-			String filename = getMHealthFileName(packet.timestamp,  "ACCEL",  "serialNumber",  "tzOffset");
+			String filename = getMHealthFileName(packet.timestamp);
 			openNewFileWriter(filename);
 		} else if (splitFile) {
 			// determine if we should open a new output file
-			long currentHr = getHourFromTimestamp(packet.timestamp);
-			long prevHr = getHourFromTimestamp(lastWrittenPacket.timestamp);
+			int currentHr = getHourFromTimestamp(packet.timestamp);
+			int prevHr = getHourFromTimestamp(lastWrittenPacket.timestamp);
 			if (currentHr != prevHr) {
-				String filename = getMHealthFileName(packet.timestamp,  "sensorType",  "serialNumber",  "tzOffset"); 
+				String filename = getMHealthFileName(packet.timestamp); 
 				openNewFileWriter(filename);
 			}
 		}
@@ -210,7 +209,6 @@ public class WAX9File {
 	 */
 	private String createCSVLine(WAX9Packet packet) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_DATA_FORMAT);
-		Date datetime = new Date(packet.timestamp);
 		
 		double ax = settings == null ? packet.accelX : settings.convertAccelerometerValueToG(packet.accelX);
 		double ay = settings == null ? packet.accelY : settings.convertAccelerometerValueToG(packet.accelY);
@@ -219,7 +217,7 @@ public class WAX9File {
 		String accelX = String.valueOf(ax);
 		String accelY = String.valueOf(ay);
 		String accelZ = String.valueOf(az);
-		return String.join(",", sdf.format(datetime), accelX, accelY, accelZ);
+		return String.join(",", sdf.format(packet.timestamp), accelX, accelY, accelZ);
 	}
 	
 	/**
@@ -236,15 +234,15 @@ public class WAX9File {
 		}
 	}
 	
-	private long getHourFromTimestamp(final long timestamp) {
-		return (Math.round(timestamp)/MILLIS_IN_HOUR)*MILLIS_IN_HOUR;
+	private static Calendar cal = Calendar.getInstance();
+	private int getHourFromTimestamp(final Date timestamp) {
+		cal.setTime(timestamp);
+		return cal.get(Calendar.HOUR_OF_DAY);
 	}
 	
-	private String getMHealthFileName(final long timestamp, final String sensorType, final String serialNumber, final String timezoneOffset) {
+	private String getMHealthFileName(final Date timestamp) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
-		Date datetime = new Date(timestamp);
-		
-		return String.format("%s.%s.%s-%s.csv", sensorType, serialNumber, sdf.format(datetime), timezoneOffset);
+		return String.format("WAX9.%s.%s.%s-%s.csv", "ACCEL", settings.getDeviceID(), sdf.format(timestamp), "UTC");
 	}
 	
 	private static FileInputStream openInputFile(String filename) throws IOException {
