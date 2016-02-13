@@ -34,7 +34,9 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -47,7 +49,8 @@ import java.util.zip.ZipFile;
 public class WAX9File {
 	private static final String MHEALTH_TIMESTAMP_FILE_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
 	private static final String MHEALTH_TIMESTAMP_DATA_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
-	private static final String MHEALTH_TIMEZONE_FILE_FORMAT = "Z";
+	private static final String MHEALTH_TIMEZONE_FILE_FORMAT = "Z"; // the format of the timezone (UTC offset)
+	private static final String MHEALTH_DECIMAL_FORMAT = "0.000";
 	private static final long MILLIS_IN_HOUR = 3600000L;
 	
 	// SLIP escape chars -  see http://tools.ietf.org/html/rfc1055 
@@ -214,9 +217,9 @@ public class WAX9File {
 		double ay = settings == null ? packet.accelY : settings.convertAccelerometerValueToG(packet.accelY);
 		double az = settings == null ? packet.accelZ : settings.convertAccelerometerValueToG(packet.accelZ);
 		
-		String accelX = String.valueOf(ax);
-		String accelY = String.valueOf(ay);
-		String accelZ = String.valueOf(az);
+		String accelX = decimalFormat(ax);
+		String accelY = decimalFormat(ay);
+		String accelZ = decimalFormat(az);
 		return String.join(",", sdf.format(packet.timestamp), accelX, accelY, accelZ);
 	}
 	
@@ -233,16 +236,19 @@ public class WAX9File {
 			e.printStackTrace();
 		}
 	}
-	
-	private static Calendar cal = Calendar.getInstance();
-	private int getHourFromTimestamp(final Date timestamp) {
-		cal.setTime(timestamp);
-		return cal.get(Calendar.HOUR_OF_DAY);
-	}
-	
+
 	private String getMHealthFileName(final Date timestamp) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
 		return String.format("WAX9.%s.%s.%s-%s.csv", "ACCEL", settings.getDeviceID(), sdf.format(timestamp), "UTC");
+	}
+	
+	private byte[] toPrimitiveByteArray(List<Byte> bytes) {
+		int size = bytes.size();
+		byte[] out = new byte[size];
+		for (int i = 0; i < size; i++) {
+			out[i] = bytes.get(i);
+		}
+		return out;
 	}
 	
 	private static FileInputStream openInputFile(String filename) throws IOException {
@@ -277,12 +283,23 @@ public class WAX9File {
 		return directory;
 	}
 	
-	private byte[] toPrimitiveByteArray(List<Byte> bytes) {
-		int size = bytes.size();
-		byte[] out = new byte[size];
-		for (int i = 0; i < size; i++) {
-			out[i] = bytes.get(i);
+	private static DecimalFormat decimalFormatter = null;	
+    public static String decimalFormat(double val) {
+    	if (decimalFormatter == null) {
+    		decimalFormatter = new DecimalFormat(MHEALTH_DECIMAL_FORMAT);
+    		decimalFormatter.setRoundingMode(RoundingMode.HALF_UP);
+    	}
+    	
+    	return decimalFormatter.format(val);
+    }
+    
+    private static Calendar cal = null;
+	private int getHourFromTimestamp(final Date timestamp) {
+		if (cal == null) {
+			cal = Calendar.getInstance();
 		}
-		return out;
+		
+		cal.setTime(timestamp);
+		return cal.get(Calendar.HOUR_OF_DAY);
 	}
 }
