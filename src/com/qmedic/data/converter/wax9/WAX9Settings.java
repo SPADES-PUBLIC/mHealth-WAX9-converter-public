@@ -1,6 +1,8 @@
 package com.qmedic.data.converter.wax9;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +18,16 @@ public class WAX9Settings {
 	 * The raw bytes that creates the rawMetadata
 	 */
 	private byte[] rawBytes = null;
+	
+	/**
+	 * The raw timestamp (in milliseconds)
+	 */
+	public final long rawTimestamp;
+	
+	/**
+	 * The start timestamp of the WAX9 File
+	 */
+	public final Date timestamp;
 	
 	/**
 	 * The string representation of the rawBytes
@@ -41,6 +53,7 @@ public class WAX9Settings {
 	 * The device ID
 	 */
 	private String deviceID = null;
+	public String getDeviceID() { return deviceID; }
 	
 	/**
 	 * The device MAC address
@@ -100,7 +113,7 @@ public class WAX9Settings {
 	/**
 	 * The output data mode
 	 */
-	private Integer outputDataMode = null;
+	private String outputDataMode = null;
 	
 	/**
 	 * The sleep mode setting
@@ -117,6 +130,9 @@ public class WAX9Settings {
 		rawMetadata = new String(bytes, StandardCharsets.UTF_8);
 		
 		String[] lines = rawMetadata.split("\n");
+		rawTimestamp = Long.parseUnsignedLong(lines[0].trim());
+		timestamp = Date.from(Instant.ofEpochMilli(rawTimestamp));
+
 		for (int i = 0; i < lines.length; i++) {
 			String line = lines[i];
 			if (line.startsWith("WAX9")) {
@@ -173,7 +189,7 @@ public class WAX9Settings {
 			}
 			
 			if (line.startsWith("DATA")) {
-				outputDataMode = Integer.parseInt(extractString(line, "DATA MODE:"));
+				outputDataMode = extractString(line, "DATA MODE:");
 				continue;
 			}
 			
