@@ -3,6 +3,7 @@ package com.qmedic.data.converter.wax9;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Date;
 
 /**
  * The WAX9 packet
@@ -41,7 +42,7 @@ public class WAX9Packet {
 	/**
 	 * The timestamp in milliseconds
 	 */
-	public final long timestamp;
+	public final Date timestamp;
 	
 	/**
 	 * The x acceleratometer value
@@ -103,7 +104,7 @@ public class WAX9Packet {
 	 */
 	public Long pressure;
 	
-	public WAX9Packet(byte[] bytes, boolean isExtended) throws IOException {
+	public WAX9Packet(byte[] bytes, boolean isExtended, WAX9Settings settings) throws IOException {
 		format = bytes[2];
 		switch (format) {
 			case STANDARD_FORMAT:
@@ -132,7 +133,9 @@ public class WAX9Packet {
 		sampleNumber = getIntFromBytes(bytes, 3, true);
 		
 		rawTimestamp = getLongFromBytes(bytes, 5, true);
-		timestamp = (rawTimestamp / TIMESTAMP_SCALE_FACTOR) * 1000;
+		double rawSeconds = (double)rawTimestamp / (double)TIMESTAMP_SCALE_FACTOR;
+		double rawMilliseconds = rawSeconds * 1000;
+		timestamp = new Date(settings.rawTimestamp + (long)rawMilliseconds);
 		
 		accelX = getShortFromBytes(bytes, 9);
 		accelY = getShortFromBytes(bytes, 11);
