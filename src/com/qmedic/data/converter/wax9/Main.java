@@ -9,7 +9,7 @@ public class Main {
 	private static Boolean splitFiles = null;
 	
 	public static void main(String[] args) {
-		// Command line example: java -jar WAX9Parser.jar ../sample-data/exampleData.bin ../output SPLIT
+		// Command line example: java -jar WAX9Parser.jar sample-data/exampleData.bin ../output SPLIT
 		if (args.length < 2){
 			System.out.println("java -jar WAX9Parser.jar [INPUT WAX9 FILE] [OUTPUT CSV DIRECTORYPATH] [SPLIT/NO_SPLIT]");
 			return;

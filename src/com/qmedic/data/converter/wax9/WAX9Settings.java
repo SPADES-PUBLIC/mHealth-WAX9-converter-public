@@ -1,13 +1,7 @@
 package com.qmedic.data.converter.wax9;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Date;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.accessibility.AccessibleExtendedText;
-import javax.activity.ActivityCompletedException;
 
 /**
  * The WAX9 Settings associated with the binary file
@@ -130,8 +124,8 @@ public class WAX9Settings {
 		rawMetadata = new String(bytes, StandardCharsets.UTF_8);
 		
 		String[] lines = rawMetadata.split("\n");
-		rawTimestamp = Long.parseUnsignedLong(lines[0].trim());
-		timestamp = Date.from(Instant.ofEpochMilli(rawTimestamp));
+		rawTimestamp = Long.parseLong(lines[0].trim());
+		timestamp = new Date(rawTimestamp);
 
 		for (int i = 0; i < lines.length; i++) {
 			String line = lines[i];
@@ -214,12 +208,14 @@ public class WAX9Settings {
 	}
 	
 	/**
-	 * Convert accelerometer value to standard unit (g)
+	 * Convert accelerometer value to SI unit g
 	 * @param accel - The raw accelerometer value
-	 * @return The converted accelerometer value in unit (g)
+	 * @return The converted accelerometer value in SI unit g
 	 * @see http://axivity.com/files/resources/WAX9_Developer_Guide_3.pdf, p. 19
 	 */
 	public double convertAccelerometerValueToG(short accel) {
+		if (accelEnabled == null || !accelEnabled) return (double)accel;
+		
 		double divisor = 1;
 		
 		switch (accelerometerRange) {
@@ -236,6 +232,6 @@ public class WAX9Settings {
 				throw new UnsupportedOperationException("Undefined accelerometer conversion for range " + accelerometerRange);
 		}
 		
-		return accel / divisor;
+		return (double)accel / divisor;
 	}
 }

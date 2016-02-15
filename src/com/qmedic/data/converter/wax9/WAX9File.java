@@ -27,31 +27,22 @@
 
 package com.qmedic.data.converter.wax9;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 public class WAX9File {
 	private static final String MHEALTH_TIMESTAMP_FILE_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
 	private static final String MHEALTH_TIMESTAMP_DATA_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
-	private static final String MHEALTH_TIMEZONE_FILE_FORMAT = "Z"; // the format of the timezone (UTC offset)
 	private static final String MHEALTH_DECIMAL_FORMAT = "0.000";
-	private static final long MILLIS_IN_HOUR = 3600000L;
 	
 	// SLIP escape chars -  see http://tools.ietf.org/html/rfc1055 
 	private final static byte SLIP_END = 	 (byte)0xC0; // 0300
@@ -92,16 +83,18 @@ public class WAX9File {
 	 */
 	public void processFile() throws IOException {
 		int datum = -1;
-		byte currentByte = 0x00;		
+		byte currentByte = 0x00;	
+		long totalBytesRead = 0;
 		
 		// read metadata
 		List<Byte> metadataBytes = new ArrayList<Byte>();
 		while ((datum = inputFileStream.read()) != -1) {
 			currentByte = (byte)datum;
 			if (currentByte == SLIP_END) break;
-			metadataBytes.add(currentByte);
+			metadataBytes.add(currentByte);			
 		}
 		if (datum == -1) return;
+		totalBytesRead += metadataBytes.size();
 		
 		settings = new WAX9Settings(toPrimitiveByteArray(metadataBytes));
 		
@@ -126,6 +119,7 @@ public class WAX9File {
 					// read next byte to determine action
 					datum = inputFileStream.read();
 					currentByte = (byte)datum;
+					totalBytesRead++;
 					
 					if (currentByte == SLIP_ESC_END) {
 						currentByte = SLIP_END;
@@ -144,12 +138,21 @@ public class WAX9File {
 			boolean isExtendedPacket = numBytesRead > WAX9Packet.STANDARD_PACKET_SIZE;
 			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(payload), isExtendedPacket, settings);
 			writeContentsToFile(packet);
+			
+			totalBytesRead += numBytesRead;
 			numBytesRead = 0;
+			
 			payload.clear();
 			packetComplete = false;
+			
+			// Print progress
+			if (totalBytesRead % 1000 == 0) {
+				System.out.format("\rConverting sample...%dK", totalBytesRead/1000);
+			}
 		}
 				
 		closeStreams();
+		System.out.println("\nDone");
 	}
 	
 	/**
@@ -157,7 +160,7 @@ public class WAX9File {
 	 * @param filename - The name of the file to open
 	 * @throws IOException - Failed to open the output stream
 	 */
-	private void openNewFileWriter(String filename) throws IOException  {
+	private void openNewFileWriter(final String filename) throws IOException  {
 		closeFileWriter();
 		
 		writer = new FileWriter(outputDirectory.getAbsolutePath() + "\\" + filename);
@@ -186,7 +189,7 @@ public class WAX9File {
 	 * @param packet - The packet to write to file
 	 * @throws IOException - Throw if unable to open a new file or write to file
 	 */
-	private void writeContentsToFile(WAX9Packet packet) throws IOException {
+	private void writeContentsToFile(final WAX9Packet packet) throws IOException {
 		if (lastWrittenPacket == null) {
 			String filename = getMHealthFileName(packet.timestamp);
 			openNewFileWriter(filename);
@@ -210,17 +213,22 @@ public class WAX9File {
 	 * @param packet - The packet to create a csv line from
 	 * @return  The CSV values
 	 */
-	private String createCSVLine(WAX9Packet packet) {
+	private String createCSVLine(final WAX9Packet packet) {
+		StringBuilder sb = new StringBuilder();
+		
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_DATA_FORMAT);
+		sb.append(sdf.format(packet.timestamp) + ",");
 		
 		double ax = settings == null ? packet.accelX : settings.convertAccelerometerValueToG(packet.accelX);
-		double ay = settings == null ? packet.accelY : settings.convertAccelerometerValueToG(packet.accelY);
-		double az = settings == null ? packet.accelZ : settings.convertAccelerometerValueToG(packet.accelZ);
+		sb.append(decimalFormat(ax) + ",");
 		
-		String accelX = decimalFormat(ax);
-		String accelY = decimalFormat(ay);
-		String accelZ = decimalFormat(az);
-		return String.join(",", sdf.format(packet.timestamp), accelX, accelY, accelZ);
+		double ay = settings == null ? packet.accelY : settings.convertAccelerometerValueToG(packet.accelY);
+		sb.append(decimalFormat(ay) + ",");
+		
+		double az = settings == null ? packet.accelZ : settings.convertAccelerometerValueToG(packet.accelZ);
+		sb.append(decimalFormat(az));
+		
+		return sb.toString();
 	}
 	
 	/**
@@ -237,12 +245,17 @@ public class WAX9File {
 		}
 	}
 
+	/**
+	 * Generates a timestamp-based filename 
+	 * @param timestamp The timestamp to base the filename on
+	 * @return The filename
+	 */
 	private String getMHealthFileName(final Date timestamp) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
 		return String.format("WAX9.%s.%s.%s-%s.csv", "ACCEL", settings.getDeviceID(), sdf.format(timestamp), "UTC");
 	}
 	
-	private byte[] toPrimitiveByteArray(List<Byte> bytes) {
+	private byte[] toPrimitiveByteArray(final List<Byte> bytes) {
 		int size = bytes.size();
 		byte[] out = new byte[size];
 		for (int i = 0; i < size; i++) {
@@ -251,7 +264,7 @@ public class WAX9File {
 		return out;
 	}
 	
-	private static FileInputStream openInputFile(String filename) throws IOException {
+	private static FileInputStream openInputFile(final String filename) throws IOException {
 		File file = new File(filename);
 		if(!file.exists()) {
 			throw new IOException("Failed to find the input file" + filename);
@@ -270,7 +283,7 @@ public class WAX9File {
 		return new FileInputStream(file);
 	}
 	
-	private static File openOutputDirectory(String outputDirectory) throws IOException {
+	private static File openOutputDirectory(final String outputDirectory) throws IOException {
 		File directory = new File(outputDirectory);
 		if(!directory.exists()) {
 			throw new IOException("Failed to find the output directory" + outputDirectory);
@@ -284,7 +297,7 @@ public class WAX9File {
 	}
 	
 	private static DecimalFormat decimalFormatter = null;	
-    public static String decimalFormat(double val) {
+    public static String decimalFormat(final double val) {
     	if (decimalFormatter == null) {
     		decimalFormatter = new DecimalFormat(MHEALTH_DECIMAL_FORMAT);
     		decimalFormatter.setRoundingMode(RoundingMode.HALF_UP);
@@ -293,13 +306,9 @@ public class WAX9File {
     	return decimalFormatter.format(val);
     }
     
-    private static Calendar cal = null;
 	private int getHourFromTimestamp(final Date timestamp) {
-		if (cal == null) {
-			cal = Calendar.getInstance();
-		}
-		
+		Calendar cal = Calendar.getInstance(); 
 		cal.setTime(timestamp);
-		return cal.get(Calendar.HOUR_OF_DAY);
+		return cal.get(Calendar.MINUTE);
 	}
 }

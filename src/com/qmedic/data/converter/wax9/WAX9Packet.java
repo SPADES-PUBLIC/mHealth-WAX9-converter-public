@@ -164,10 +164,6 @@ public class WAX9Packet {
 		return val & 0xffff;
 	}
 	
-	private static long getLongFromBytes(byte[] bytes, int offset) {
-		return getLongFromBytes(bytes, offset);
-	}
-	
 	private static long getLongFromBytes(byte[] bytes, int offset, boolean upscaleFromInt) {
 		if (!upscaleFromInt) return getValueFromBytes(long.class, bytes, offset).longValue();
 		
