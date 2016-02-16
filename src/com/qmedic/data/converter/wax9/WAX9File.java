@@ -42,32 +42,30 @@ public class WAX9File {
 	private static final String MHEALTH_TIMESTAMP_FILE_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
 	private static final String MHEALTH_TIMESTAMP_DATA_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 	private static final String MHEALTH_DECIMAL_FORMAT = "0.000";
-	
-	// SLIP escape chars -  see http://tools.ietf.org/html/rfc1055 
-	private final static byte SLIP_END = 	 (byte)0xC0; // 0300
-	private final static byte SLIP_ESC = 	 (byte)0xDB; // 0333
-	private final static byte SLIP_ESC_END = (byte)0xDC; // 0334
-	private final static byte SLIP_ESC_ESC = (byte)0xDD; // 0335
-	
+
+	// SLIP escape chars - see http://tools.ietf.org/html/rfc1055
+	private final static byte SLIP_END = (byte) 0xC0; // 0300
+	private final static byte SLIP_ESC = (byte) 0xDB; // 0333
+	private final static byte SLIP_ESC_END = (byte) 0xDC; // 0334
+	private final static byte SLIP_ESC_ESC = (byte) 0xDD; // 0335
+
 	private final File outputDirectory;
-	
+
 	private FileWriter writer;
 	private FileInputStream inputFileStream;
-	
-	private boolean splitFile = false;	
+
+	private boolean splitFile = false;
 	private WAX9Packet lastWrittenPacket = null;
-	
+
 	private WAX9Settings settings = null;
-	
+
 	public WAX9File(final String inputFile, final String outputDirectoryPath) throws IOException {
 		this.inputFileStream = openInputFile(inputFile);
-		
-		String dirName = outputDirectoryPath.charAt(0) == '/' ? 
-			outputDirectoryPath.substring(1) :
-			outputDirectoryPath;
+
+		String dirName = outputDirectoryPath.charAt(0) == '/' ? outputDirectoryPath.substring(1) : outputDirectoryPath;
 		this.outputDirectory = openOutputDirectory(dirName);
 	}
-	
+
 	/**
 	 * Sets whether if file splitting should occur when writing contents
 	 * @param shouldEnable
@@ -75,94 +73,102 @@ public class WAX9File {
 	public void enableSplitFile(boolean shouldEnable) {
 		splitFile = shouldEnable;
 	}
-	
+
 	/**
-	 * Process the provided input file, writing the results to the specified output directory
+	 * Process the provided input file, writing the results to the specified
+	 * output directory
 	 * @throws IOException
 	 */
 	public void processFile() throws IOException {
 		int datum = -1;
-		byte currentByte = 0x00;	
+		byte currentByte = 0x00;
 		long totalBytesRead = 0;
-		
+
 		// read metadata
 		List<Byte> metadataBytes = new ArrayList<Byte>();
 		while ((datum = inputFileStream.read()) != -1) {
-			currentByte = (byte)datum;
-			if (currentByte == SLIP_END) break;
-			metadataBytes.add(currentByte);			
+			currentByte = (byte) datum;
+			if (currentByte == SLIP_END)
+				break;
+			metadataBytes.add(currentByte);
 		}
-		if (datum == -1) return;
+		if (datum == -1)
+			return;
 		totalBytesRead += metadataBytes.size();
-		
+
 		settings = new WAX9Settings(toPrimitiveByteArray(metadataBytes));
-		
+
 		// read payload
 		boolean packetComplete = false;
 		List<Byte> rawPacket = new ArrayList<Byte>();
 		rawPacket.add(currentByte); // collect currentByte from metadata reading
-		
+
 		while ((datum = inputFileStream.read()) != -1) {
-			currentByte = (byte)datum;
-			
+			currentByte = (byte) datum;
+
 			switch (currentByte) {
-				case SLIP_END:
-					// ensure that this is not the first 'end' byte
-					packetComplete = rawPacket.size() > 0;
-					break;
-					
-				case SLIP_ESC:
-					// read next byte to determine byte conversion
-					datum = inputFileStream.read();
-					currentByte = (byte)datum;
-					totalBytesRead++;
-					
-					if (currentByte == SLIP_ESC_END) {
-						currentByte = SLIP_END;
-					} else if (currentByte == SLIP_ESC_ESC) {
-						currentByte = SLIP_ESC;
-					}
-					break;
+			case SLIP_END:
+				// ensure that this is not the first 'end' byte
+				packetComplete = rawPacket.size() > 0;
+				break;
+
+			case SLIP_ESC:
+				// read next byte to determine byte conversion
+				datum = inputFileStream.read();
+				currentByte = (byte) datum;
+				totalBytesRead++;
+
+				if (currentByte == SLIP_ESC_END) {
+					currentByte = SLIP_END;
+				} else if (currentByte == SLIP_ESC_ESC) {
+					currentByte = SLIP_ESC;
+				}
+				break;
 			}
 			rawPacket.add(currentByte);
-			if (!packetComplete) continue;
-			
+			if (!packetComplete)
+				continue;
+
 			// Packet completed --> lets write and reset
 			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(rawPacket), settings);
 			writeContentsToFile(packet);
-			
+
 			totalBytesRead += rawPacket.size();
 			rawPacket.clear();
 			packetComplete = false;
-			
+
 			// Print progress
 			if (totalBytesRead % 1000 == 0) {
-				System.out.format("\rConverting sample...%dK", totalBytesRead/1000);
+				System.out.format("\rConverting sample...%dK", totalBytesRead / 1000);
 			}
 		}
-				
+
 		closeStreams();
 		System.out.println("\nDone");
 	}
-	
+
 	/**
 	 * Opens a new file writer for outputting contents
-	 * @param filename - The name of the file to open
-	 * @throws IOException - Failed to open the output stream
+	 * 
+	 * @param filename
+	 *            - The name of the file to open
+	 * @throws IOException
+	 *             - Failed to open the output stream
 	 */
-	private void openNewFileWriter(final String filename) throws IOException  {
+	private void openNewFileWriter(final String filename) throws IOException {
 		closeFileWriter();
-		
+
 		writer = new FileWriter(outputDirectory.getAbsolutePath() + "\\" + filename);
 		writer.append("HEADER_TIME_STAMP,X,Y,Z\n");
 	}
-	
+
 	/**
 	 * Closes the file writer
 	 */
 	private void closeFileWriter() {
-		if (this.writer == null) return;
-		
+		if (this.writer == null)
+			return;
+
 		// clean up
 		try {
 			this.writer.flush();
@@ -170,14 +176,17 @@ public class WAX9File {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		this.writer = null;
 	}
-	
+
 	/**
 	 * Writes the contents of the packet to the file
-	 * @param packet - The packet to write to file
-	 * @throws IOException - Throw if unable to open a new file or write to file
+	 * 
+	 * @param packet
+	 *            - The packet to write to file
+	 * @throws IOException
+	 *             - Throw if unable to open a new file or write to file
 	 */
 	private void writeContentsToFile(final WAX9Packet packet) throws IOException {
 		if (lastWrittenPacket == null) {
@@ -188,37 +197,36 @@ public class WAX9File {
 			int currentHr = getHourFromTimestamp(packet.timestamp);
 			int prevHr = getHourFromTimestamp(lastWrittenPacket.timestamp);
 			if (currentHr != prevHr) {
-				String filename = getMHealthFileName(packet.timestamp); 
+				String filename = getMHealthFileName(packet.timestamp);
 				openNewFileWriter(filename);
 			}
 		}
-		
+
 		String csvLine = createCSVLine(packet);
 		writer.write(csvLine);
 		lastWrittenPacket = packet;
 	}
-	
+
 	/**
 	 * Create a mHealth-compatible CSV line from a WAX9 Packet
-	 * @param packet - The packet to create a csv line from
-	 * @return  The CSV values
+	 * 
+	 * @param packet
+	 *            - The packet to create a csv line from
+	 * @return The CSV values
 	 */
 	private String createCSVLine(final WAX9Packet packet) {
-		return String.format(
-			"%s,%s,%s,%s\n",
-			csvDateFormat(packet.timestamp),
-			decimalFormat(packet.accelX),
-			decimalFormat(packet.accelY),
-			decimalFormat(packet.accelZ));
+		return String.format("%s,%s,%s,%s\n", csvDateFormat(packet.timestamp), decimalFormat(packet.accelX),
+				decimalFormat(packet.accelY), decimalFormat(packet.accelZ));
 	}
-	
+
 	/**
 	 * Method for closing all open streams (input streams, file streams, etc...)
 	 */
 	private void closeStreams() {
 		closeFileWriter();
-		
-		if (inputFileStream == null) return;
+
+		if (inputFileStream == null)
+			return;
 		try {
 			inputFileStream.close();
 		} catch (IOException e) {
@@ -227,15 +235,17 @@ public class WAX9File {
 	}
 
 	/**
-	 * Generates a timestamp-based filename 
-	 * @param timestamp The timestamp to base the filename on
+	 * Generates a timestamp-based filename
+	 * 
+	 * @param timestamp
+	 *            The timestamp to base the filename on
 	 * @return The filename
 	 */
 	private String getMHealthFileName(final Date timestamp) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
-		return String.format("WAX9.%s.%s.%s-%s.csv", "ACCEL", settings.getDeviceID(), sdf.format(timestamp), "UTC");
+		return String.format("WAX9.ACCEL.%s.%s.csv", settings.getDeviceID(), sdf.format(timestamp));
 	}
-	
+
 	private byte[] toPrimitiveByteArray(final List<Byte> bytes) {
 		int size = bytes.size();
 		byte[] out = new byte[size];
@@ -244,63 +254,61 @@ public class WAX9File {
 		}
 		return out;
 	}
-	
+
 	private static FileInputStream openInputFile(final String filename) throws IOException {
 		File file = new File(filename);
-		if(!file.exists()) {
+		if (!file.exists()) {
 			throw new IOException("Failed to find the input file" + filename);
 		}
-		
-		if(file.isDirectory()) {
+
+		if (file.isDirectory()) {
 			throw new IOException(filename + " is a directory. Input must be a file.");
 		}
-		if(!file.canRead()) {
-			throw new IOException("Cannot read file "+file.getAbsolutePath());
+		if (!file.canRead()) {
+			throw new IOException("Cannot read file " + file.getAbsolutePath());
 		}
-		if(file.length() < 4) {
+		if (file.length() < 4) {
 			throw new IOException("File is empty");
 		}
-		
+
 		return new FileInputStream(file);
 	}
-	
+
 	private static File openOutputDirectory(final String outputDirectory) throws IOException {
 		File directory = new File(outputDirectory);
-		if(!directory.exists()) {
+		if (!directory.exists()) {
 			throw new IOException("Failed to find the output directory" + outputDirectory);
 		}
-		
-		if(!directory.isDirectory()) {
+
+		if (!directory.isDirectory()) {
 			throw new IOException(outputDirectory + " is not a directory.");
 		}
-		
+
 		return directory;
 	}
-	
-	private static DecimalFormat decimalFormatter = null;	
-    public static String decimalFormat(final double val) {
-    	if (decimalFormatter == null) {
-    		decimalFormatter = new DecimalFormat(MHEALTH_DECIMAL_FORMAT);
-    		decimalFormatter.setRoundingMode(RoundingMode.HALF_UP);
-    	}
-    	
-    	return decimalFormatter.format(val);
-    }
-    
-    private static SimpleDateFormat csvDateFormatter = null;
-    private static String csvDateFormat(final Date timestamp) {
-    	if (csvDateFormatter == null) {
-    		csvDateFormatter = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
-    	}
-    	return csvDateFormatter.format(timestamp);
-    }
-    
-    private Calendar cal = null;
+
+	private static DecimalFormat decimalFormatter = null;
+	public static String decimalFormat(final double val) {
+		if (decimalFormatter == null) {
+			decimalFormatter = new DecimalFormat(MHEALTH_DECIMAL_FORMAT);
+			decimalFormatter.setRoundingMode(RoundingMode.HALF_UP);
+		}
+		return decimalFormatter.format(val);
+	}
+
+	private static SimpleDateFormat csvDateFormatter = null;
+	private static String csvDateFormat(final Date timestamp) {
+		if (csvDateFormatter == null) {
+			csvDateFormatter = new SimpleDateFormat(MHEALTH_TIMESTAMP_DATA_FORMAT);
+		}
+		return csvDateFormatter.format(timestamp);
+	}
+
+	private Calendar cal = null;
 	private int getHourFromTimestamp(final Date timestamp) {
 		if (cal == null) {
 			cal = Calendar.getInstance();
 		}
-		
 		cal.setTime(timestamp);
 		return cal.get(Calendar.HOUR_OF_DAY);
 	}
