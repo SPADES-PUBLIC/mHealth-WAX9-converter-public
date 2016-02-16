@@ -71,19 +71,34 @@ public class WAX9Packet {
 	public final Date timestamp;
 	
 	/**
-	 * The x acceleratometer value
+	 * The x accelerometer raw value
 	 */
-	public final short accelX;
+	public final short rawAccelX;
 	
 	/**
-	 * The y acceleratometer value
+	 * The x accelerometer value converted to SI Unit g
 	 */
-	public final short accelY;
+	public final double accelX;
 	
 	/**
-	 * The z acceleratometer value
+	 * The y accelerometer value
 	 */
-	public final short accelZ;
+	public final short rawAccelY;
+	
+	/**
+	 * The y accelerometer value, converted to SI Unit g
+	 */
+	public final double accelY;
+	
+	/**
+	 * The z accelerometer value
+	 */
+	public final short rawAccelZ;
+
+	/**
+	 * The z accelerometer value, converted to SI Unit g
+	 */
+	public final double accelZ;
 	
 	/**
 	 * The x gyroscope value
@@ -165,12 +180,18 @@ public class WAX9Packet {
 		double rawMilliseconds = rawSeconds * 1000;
 		timestamp = new Date(settings.rawTimestamp + (long)rawMilliseconds);
 		
-		accelX = getShortFromBytes(bytes, 9);
-		accelY = getShortFromBytes(bytes, 11);
-		accelZ = getShortFromBytes(bytes, 13);
+		rawAccelX = getShortFromBytes(bytes, 9);
+		rawAccelY = getShortFromBytes(bytes, 11);
+		rawAccelZ = getShortFromBytes(bytes, 13);
+		
+		accelX = settings.convertAccelerometerValueToG(rawAccelX);
+		accelY = settings.convertAccelerometerValueToG(rawAccelY);
+		accelZ = settings.convertAccelerometerValueToG(rawAccelZ);
+		
 		gyroX = getShortFromBytes(bytes, 15);
 		gyroY = getShortFromBytes(bytes, 17);
 		gyroZ = getShortFromBytes(bytes, 19);
+		
 		magnetX = getShortFromBytes(bytes, 21);
 		magnetY = getShortFromBytes(bytes, 23);
 		magnetZ = getShortFromBytes(bytes, 25);
