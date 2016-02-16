@@ -215,8 +215,12 @@ public class WAX9File {
 	 * @return The CSV values
 	 */
 	private String createCSVLine(final WAX9Packet packet) {
-		return String.format("%s,%s,%s,%s\n", csvDateFormat(packet.timestamp), decimalFormat(packet.accelX),
-				decimalFormat(packet.accelY), decimalFormat(packet.accelZ));
+		return String.format(
+			"%s,%s,%s,%s\n", 
+			csvDateFormat(packet.timestamp), 
+			decimalFormat(packet.accelX),
+			decimalFormat(packet.accelY), 
+			decimalFormat(packet.accelZ));
 	}
 
 	/**
@@ -257,10 +261,10 @@ public class WAX9File {
 
 	private static FileInputStream openInputFile(final String filename) throws IOException {
 		File file = new File(filename);
+		
 		if (!file.exists()) {
 			throw new IOException("Failed to find the input file" + filename);
 		}
-
 		if (file.isDirectory()) {
 			throw new IOException(filename + " is a directory. Input must be a file.");
 		}
@@ -276,10 +280,10 @@ public class WAX9File {
 
 	private static File openOutputDirectory(final String outputDirectory) throws IOException {
 		File directory = new File(outputDirectory);
+		
 		if (!directory.exists()) {
 			throw new IOException("Failed to find the output directory" + outputDirectory);
 		}
-
 		if (!directory.isDirectory()) {
 			throw new IOException(outputDirectory + " is not a directory.");
 		}

@@ -152,29 +152,29 @@ public class WAX9Packet {
 		boolean isExtended = bytes.length == EXTENDED_PACKET_SIZE;
 
 		switch (format) {
-		case STANDARD_FORMAT:
-			if (isExtended)
-				throw new IOException("Expected extended WAX9 packet, but got standard size.");
-
-			packetSize = STANDARD_PACKET_SIZE;
-			volts = null;
-			temperature = null;
-			pressure = null;
-			break;
-
-		case EXTENDED_FORMAT:
-			if (!isExtended)
-				throw new IOException("Expected standard WAX9 packet, but got extended size.");
-
-			packetSize = EXTENDED_PACKET_SIZE;
-			volts = getIntFromBytes(bytes, 27, true);
-			temperature = getShortFromBytes(bytes, 29);
-			pressure = getLongFromBytes(bytes, 31, true);
-			break;
-
-		default:
-			packetSize = -1;
-			break;
+			case STANDARD_FORMAT:
+				if (isExtended)
+					throw new IOException("Expected extended WAX9 packet, but got standard size.");
+	
+				packetSize = STANDARD_PACKET_SIZE;
+				volts = null;
+				temperature = null;
+				pressure = null;
+				break;
+	
+			case EXTENDED_FORMAT:
+				if (!isExtended)
+					throw new IOException("Expected standard WAX9 packet, but got extended size.");
+	
+				packetSize = EXTENDED_PACKET_SIZE;
+				volts = getIntFromBytes(bytes, 27, true);
+				temperature = getShortFromBytes(bytes, 29);
+				pressure = getLongFromBytes(bytes, 31, true);
+				break;
+	
+			default:
+				packetSize = -1;
+				break;
 		}
 
 		sampleNumber = getIntFromBytes(bytes, 3, true);

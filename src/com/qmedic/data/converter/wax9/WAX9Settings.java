@@ -253,18 +253,18 @@ public class WAX9Settings {
 		double divisor = 1;
 
 		switch (accelerometerRange) {
-		case 2:
-			divisor = 16384;
-			break;
-		case 4:
-			divisor = 8192;
-			break;
-		case 8:
-			divisor = 4096;
-			break;
-		default:
-			throw new UnsupportedOperationException(
-					"Undefined accelerometer conversion for range " + accelerometerRange);
+			case 2:
+				divisor = 16384;
+				break;
+			case 4:
+				divisor = 8192;
+				break;
+			case 8:
+				divisor = 4096;
+				break;
+			default:
+				throw new UnsupportedOperationException(
+						"Undefined accelerometer conversion for range " + accelerometerRange);
 		}
 
 		return (double) accel / divisor;
