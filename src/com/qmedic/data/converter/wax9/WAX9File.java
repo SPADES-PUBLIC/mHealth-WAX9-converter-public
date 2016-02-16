@@ -302,6 +302,6 @@ public class WAX9File {
 		}
 		
 		cal.setTime(timestamp);
-		return cal.get(Calendar.MINUTE);
+		return cal.get(Calendar.HOUR_OF_DAY);
 	}
 }
