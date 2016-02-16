@@ -130,8 +130,10 @@ public class WAX9Packet {
 	 */
 	public Long pressure;
 	
-	public WAX9Packet(byte[] bytes, boolean isExtended, WAX9Settings settings) throws IOException {
+	public WAX9Packet(byte[] bytes, WAX9Settings settings) throws IOException {
 		format = bytes[2];
+		boolean isExtended = bytes.length == EXTENDED_PACKET_SIZE;
+		
 		switch (format) {
 			case STANDARD_FORMAT:
 				if (isExtended) throw new IOException("Expected extended WAX9 packet, but got standard size.");

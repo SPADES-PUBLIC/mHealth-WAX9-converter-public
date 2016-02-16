@@ -99,11 +99,8 @@ public class WAX9File {
 		
 		// read payload
 		boolean packetComplete = false;
-		int numBytesRead = 0;
-		
-		List<Byte> payload = new ArrayList<Byte>();
-		payload.add(currentByte); // collect currentByte from metadata reading
-		numBytesRead++;
+		List<Byte> rawPacket = new ArrayList<Byte>();
+		rawPacket.add(currentByte); // collect currentByte from metadata reading
 		
 		while ((datum = inputFileStream.read()) != -1) {
 			currentByte = (byte)datum;
@@ -111,11 +108,11 @@ public class WAX9File {
 			switch (currentByte) {
 				case SLIP_END:
 					// ensure that this is not the first 'end' byte
-					packetComplete = numBytesRead > 0;
+					packetComplete = rawPacket.size() > 0;
 					break;
 					
 				case SLIP_ESC:
-					// read next byte to determine action
+					// read next byte to determine byte conversion
 					datum = inputFileStream.read();
 					currentByte = (byte)datum;
 					totalBytesRead++;
@@ -127,21 +124,15 @@ public class WAX9File {
 					}
 					break;
 			}
-			payload.add(currentByte);
-			numBytesRead++;			
-			
-			// do we still have more to read?
+			rawPacket.add(currentByte);
 			if (!packetComplete) continue;
 			
-			// we've 'completed' the packet. lets write and reset
-			boolean isExtendedPacket = numBytesRead > WAX9Packet.STANDARD_PACKET_SIZE;
-			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(payload), isExtendedPacket, settings);
+			// Packet completed --> lets write and reset
+			WAX9Packet packet = new WAX9Packet(toPrimitiveByteArray(rawPacket), settings);
 			writeContentsToFile(packet);
 			
-			totalBytesRead += numBytesRead;
-			numBytesRead = 0;
-			
-			payload.clear();
+			totalBytesRead += rawPacket.size();
+			rawPacket.clear();
 			packetComplete = false;
 			
 			// Print progress
