@@ -193,7 +193,7 @@ public class WAX9File {
 			}
 		}
 		
-		String csvLine = createCSVLine(packet) + "\n";
+		String csvLine = createCSVLine(packet);
 		writer.write(csvLine);
 		lastWrittenPacket = packet;
 	}
@@ -204,21 +204,12 @@ public class WAX9File {
 	 * @return  The CSV values
 	 */
 	private String createCSVLine(final WAX9Packet packet) {
-		StringBuilder sb = new StringBuilder();
-		
-		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_DATA_FORMAT);
-		sb.append(sdf.format(packet.timestamp) + ",");
-		
-		double ax = settings == null ? packet.accelX : settings.convertAccelerometerValueToG(packet.accelX);
-		sb.append(decimalFormat(ax) + ",");
-		
-		double ay = settings == null ? packet.accelY : settings.convertAccelerometerValueToG(packet.accelY);
-		sb.append(decimalFormat(ay) + ",");
-		
-		double az = settings == null ? packet.accelZ : settings.convertAccelerometerValueToG(packet.accelZ);
-		sb.append(decimalFormat(az));
-		
-		return sb.toString();
+		return String.format(
+			"%s,%s,%s,%s\n",
+			csvDateFormat(packet.timestamp),
+			decimalFormat(packet.accelX),
+			decimalFormat(packet.accelY),
+			decimalFormat(packet.accelZ));
 	}
 	
 	/**
@@ -296,8 +287,20 @@ public class WAX9File {
     	return decimalFormatter.format(val);
     }
     
+    private static SimpleDateFormat csvDateFormatter = null;
+    private static String csvDateFormat(final Date timestamp) {
+    	if (csvDateFormatter == null) {
+    		csvDateFormatter = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
+    	}
+    	return csvDateFormatter.format(timestamp);
+    }
+    
+    private Calendar cal = null;
 	private int getHourFromTimestamp(final Date timestamp) {
-		Calendar cal = Calendar.getInstance(); 
+		if (cal == null) {
+			cal = Calendar.getInstance();
+		}
+		
 		cal.setTime(timestamp);
 		return cal.get(Calendar.MINUTE);
 	}
