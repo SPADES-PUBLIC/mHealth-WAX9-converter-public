@@ -23,7 +23,7 @@ Download the WAX9Parser.jar file, open a command prompt and type a command with 
 java -jar WAX9Parser.jar [INPUT WAX9 FILE] [OUTPUT CSV DIRECTORYPATH] [SPLIT/NO_SPLIT]
 ```
 
-- **[INPUT WAX9 FILE]**: (required) Relative or absolute path for a GT3X file.
+- **[INPUT WAX9 FILE]**: (required) Relative or absolute path for a WAX9 file.
 - **[OUTPUT CSV DIRECTORY PATH]**: (required) Relative or absolute path of the directory for the mHealth CSV output file (Ending the path with a '/' is optional).
 - **[SPLIT/NO_SPLIT]**: (required) Generate mHealth output in one big file or in multiple hourly files.
 
@@ -32,14 +32,14 @@ Example Commands
 ----------------
 1- Open a terminal or command prompt.
 
-2- Navigate to the directory where the downloaded GT3XParser.jar is located.
+2- Navigate to the directory where the downloaded WAX9Parser.jar is located.
 
 3- Type the following command: 
 ```ShellSession
 java -jar WAX9Parser.jar sample-data/exampleData.bin /home/user/Documents/ SPLIT
 ```
 
-4- An mHealth CSV file should be generated in the specified output directory with decoded GT3X data. For example:
+4- An mHealth CSV file should be generated in the specified output directory with decoded WAX9 data. For example:
 ```ShellSession
 /home/user/Documents/WAX9.ACCEL.65535.2014-11-18-14-06-13-046.csv
 ```
