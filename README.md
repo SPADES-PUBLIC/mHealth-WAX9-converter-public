@@ -3,10 +3,10 @@ A standalone app written in Java to convert raw Accelerometer data from WAX9 Fil
 
 Description
 -----------
-This repository contains Java source code, executables and sample wax9 data to convert a WAX9 file into mHealth-compliant CSV files. The converter currently only accounts for ACTIVITY-type data (accelerometer - **ACCEL** in mHealth).
+This repository contains Java source code, executables and sample wax9 data to convert a WAX9 file into mHealth-compliant CSV files.
 
 Content description:
-- **sample-data/**: Contains a csv file and a binary file from Axivity devices. WAX9 file format specifications can be found here: [Wax9 Developer Guide, pg. 7](http://axivity.com/files/resources/WAX9_Developer_Guide_3.pdf).
+- **sample-data/**: Contains a csv file and a binary file from Axivity devices. WAX9 file format specifications can be found here: [Wax9 Developer Guide, pg. 7](http://axivity.com/files/resources/WAX9_Developer_Guide_3.pdf#page=7).
 - **src/**: Contains a Java project with the full source code.
 - **WAX9Parser.jar**: Is an executable jar file accessible from the command line to convert a wax9 file to mHealth-compliant CSV file.
 
