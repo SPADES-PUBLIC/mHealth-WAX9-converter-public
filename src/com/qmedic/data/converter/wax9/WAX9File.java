@@ -158,7 +158,7 @@ public class WAX9File {
 	private void openNewFileWriter(final String filename) throws IOException {
 		closeFileWriter();
 
-		writer = new FileWriter(outputDirectory.getAbsolutePath() + "\\" + filename);
+		writer = new FileWriter(outputDirectory.getAbsolutePath() + "/" + filename);
 		writer.append("HEADER_TIME_STAMP,X,Y,Z\n");
 	}
 
@@ -247,7 +247,7 @@ public class WAX9File {
 	 */
 	private String getMHealthFileName(final Date timestamp) {
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
-		return String.format("WAX9.ACCEL.%s.%s.csv", settings.getDeviceID(), sdf.format(timestamp));
+		return String.format("ACCEL.%s.%s.csv", settings.getDeviceID(), sdf.format(timestamp));
 	}
 
 	private byte[] toPrimitiveByteArray(final List<Byte> bytes) {
