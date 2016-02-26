@@ -272,6 +272,7 @@ public class WAX9Settings {
 		
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
+		sb.append(rawTimestamp + "\n");
 		sb.append(String.format("WAX9, HW: %s, FW: %s, CS: %s\n", hardwareVersion, firmwareVersion, chipset));
 		sb.append(String.format("ID: %s\n", deviceID));
 		sb.append(String.format("NAME: %s\n", name));
