@@ -156,7 +156,7 @@ public class WAX9Settings {
 		String[] lines = rawMetadata.split("\n");
 		rawTimestamp = Long.parseLong(lines[0].trim());
 		timestamp = new Date(rawTimestamp);
-
+		
 		for (int i = 0; i < lines.length; i++) {
 			String line = lines[i];
 			if (line.startsWith("WAX9")) {
@@ -268,5 +268,21 @@ public class WAX9Settings {
 		}
 
 		return (double) accel / divisor;
+	}
+		
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(String.format("WAX9, HW: %s, FW: %s, CS: %s\n", hardwareVersion, firmwareVersion, chipset));
+		sb.append(String.format("ID: %s\n", deviceID));
+		sb.append(String.format("NAME: %s\n", name));
+		sb.append(String.format("MAC: %s\n", mac));
+		sb.append(String.format("ACCEL: %d, %d, %d\n", accelEnabled ? 1 : 0, accelerometerRate, accelerometerRange));
+		sb.append(String.format("GYRO: %d, %d, %d\n", gyroEnabled ? 1 : 0, gyroscopeRate, gyroscopeRange));
+		sb.append(String.format("MAG: %d, %d\n", magEnabled ? 1 : 0, magnetometerRange));
+		sb.append(String.format("RATEX: %d\n", outputDataRate));
+		sb.append(String.format("DATA MODE: %s\n", outputDataMode));
+		sb.append(String.format("SLEEP MODE:%d\n", sleepModeSetting));
+		sb.append(String.format("INACTIVE:%s", inactivityTimeoutValue));
+		return sb.toString();
 	}
 }
