@@ -37,11 +37,15 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 public class WAX9File {
 	private static final String MHEALTH_TIMESTAMP_FILE_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
 	private static final String MHEALTH_TIMESTAMP_DATA_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 	private static final String MHEALTH_DECIMAL_FORMAT = "0.000";
+	
+	private static final String SENSOR_TYPE = "AxivityWAX9";
+	private static final String DATA_TYPE = "AccelerationCalibrated";
 
 	// SLIP escape chars - see http://tools.ietf.org/html/rfc1055
 	private final static byte SLIP_END = (byte) 0xC0; // 0300
@@ -107,24 +111,25 @@ public class WAX9File {
 			currentByte = (byte) datum;
 
 			switch (currentByte) {
-			case SLIP_END:
-				// ensure that this is not the first 'end' byte
-				packetComplete = rawPacket.size() > 0;
-				break;
-
-			case SLIP_ESC:
-				// read next byte to determine byte conversion
-				datum = inputFileStream.read();
-				currentByte = (byte) datum;
-				totalBytesRead++;
-
-				if (currentByte == SLIP_ESC_END) {
-					currentByte = SLIP_END;
-				} else if (currentByte == SLIP_ESC_ESC) {
-					currentByte = SLIP_ESC;
-				}
-				break;
+				case SLIP_END:
+					// ensure that this is not the first 'end' byte
+					packetComplete = rawPacket.size() > 0;
+					break;
+	
+				case SLIP_ESC:
+					// read next byte to determine byte conversion
+					datum = inputFileStream.read();
+					currentByte = (byte) datum;
+					totalBytesRead++;
+	
+					if (currentByte == SLIP_ESC_END) {
+						currentByte = SLIP_END;
+					} else if (currentByte == SLIP_ESC_ESC) {
+						currentByte = SLIP_ESC;
+					}
+					break;
 			}
+			
 			rawPacket.add(currentByte);
 			if (!packetComplete)
 				continue;
@@ -239,15 +244,39 @@ public class WAX9File {
 	}
 
 	/**
-	 * Generates a timestamp-based filename
+	 * Generates a filename following the format
+	 * [SensorType-DataType-VersionInfo].[SensorID].[YYYY]-[MM]-[DD]-[hh]-[mm]-[ss]-[mmm]-[P/M][hhmm].sensor.csv
 	 * 
 	 * @param timestamp
 	 *            The timestamp to base the filename on
 	 * @return The filename
 	 */
 	private String getMHealthFileName(final Date timestamp) {
+		StringBuilder sb = new StringBuilder();
+		
+		String prefix = String.format(
+			"%s-%s-%s", 
+			SENSOR_TYPE, 
+			DATA_TYPE,  
+			settings.getFirmwareVersion().replace('.', 'x')); 
+		sb.append(prefix);
+		
+		String sensorID = 
+			settings.getDeviceID() + 
+			settings.getMACAddress().replace(":", "");
+		sb.append("." + sensorID);
+		
 		SimpleDateFormat sdf = new SimpleDateFormat(MHEALTH_TIMESTAMP_FILE_FORMAT);
-		return String.format("ACCEL.%s.%s.csv", settings.getDeviceID(), sdf.format(timestamp));
+		sb.append("." + sdf.format(timestamp));
+		
+		String tzString = settings.getTimezoneOffset();
+		sb.append("-");
+		sb.append(tzString.charAt(0) == '-' ? "M": "P");
+		sb.append(tzString.substring(1));
+				
+		sb.append(".sensor.csv");
+		
+		return sb.toString();
 	}
 
 	private byte[] toPrimitiveByteArray(final List<Byte> bytes) {
