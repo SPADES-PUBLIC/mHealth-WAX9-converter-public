@@ -27,7 +27,9 @@
 package com.qmedic.data.converter.wax9;
 
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * The WAX9 Settings associated with the binary file
@@ -49,6 +51,14 @@ public class WAX9Settings {
 	 * The start timestamp of the WAX9 File
 	 */
 	public final Date timestamp;
+	
+	/**
+	 * The time zone offset of the WAX9 File
+	 */
+	private String timezoneOffset = null;
+	public String getTimezoneOffset() {
+		return timezoneOffset;
+	}
 
 	/**
 	 * The string representation of the rawBytes
@@ -64,6 +74,9 @@ public class WAX9Settings {
 	 * The firmware version
 	 */
 	private String firmwareVersion = null;
+	public String getFirmwareVersion() {
+		return firmwareVersion;
+	}
 
 	/**
 	 * The chipset of the WAX9 device
@@ -83,6 +96,9 @@ public class WAX9Settings {
 	 * The device MAC address
 	 */
 	private String mac = null;
+	public String getMACAddress() {
+		return mac;
+	}
 
 	/**
 	 * The device name
@@ -226,6 +242,11 @@ public class WAX9Settings {
 				inactivityTimeoutValue = extractString(line, "INACTIVE:");
 				continue;
 			}
+		}
+		
+		if (timezoneOffset == null) {
+			// default to timezone of timestamp (which defaults to local timezone of parser, if not specified)
+			timezoneOffset = new SimpleDateFormat("Z").format(timestamp);
 		}
 	}
 
